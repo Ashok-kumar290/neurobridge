@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "neurobridge"
+version = "1.0.0"
+description = "An asymmetric intelligence layer for offline-first, self-improving AI coding."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "seyominaoto"},
+]
+keywords = ["ai", "llm", "coding", "offline", "qlora", "fine-tuning", "distillation"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "typer[all]>=0.9.0",
+    "rich>=13.0.0",
+    "pydantic>=2.0.0",
+    "pyyaml>=6.0.0",
+    "requests>=2.31.0",
+    "cohere>=5.0.0",
+    "faiss-cpu>=1.7.4",
+    "numpy>=1.24.0",
+    "blake3>=0.3.3",
+    "pynacl>=1.5.0",
+    "aiohttp>=3.9.0",
+    "aiosqlite>=0.19.0",
+    "pygments>=2.17.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/seyominaoto/neurobridge"
+"Bug Tracker" = "https://github.com/seyominaoto/neurobridge/issues"
+
+[project.scripts]
+neuro = "neuro.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["neuro*"]
