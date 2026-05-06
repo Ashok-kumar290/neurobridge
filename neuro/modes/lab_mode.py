@@ -91,7 +91,7 @@ def run_lab(
         help="Number of autonomous tasks to execute."
     ),
     model: str = typer.Option(
-        "super-qwen:7b", "--model", "-m", 
+        "llama3.2:latest", "--model", "-m", 
         help="Model to use for self-learning."
     ),
     auto_approve: bool = typer.Option(
@@ -137,22 +137,35 @@ def run_lab(
             progress.update(lab_task, description=f"Task {i+1}: [dim]{task_prompt[:40]}...[/dim]")
             
             try:
-                # Execute via router (which handles recording automatically)
-                # In a full implementation, we would run this in a Sandbox process
-                # and use an LLM-as-a-Judge to evaluate the output automatically.
-                # For now, we simulate success for the scaffold.
+                from neuro.modes.safe_mode import SafeMode
+                from neuro.training.optimizer import ConsistencyTester
                 
-                # Mock execution for Phase 9 scaffolding
-                time.sleep(1.5)  
+                # Execute via SafeMode
+                mode = SafeMode()
                 
-                # We assume success for this mock
-                session.successful += 1
+                # Consistency Test (Layer 3 Suppression)
+                tester = ConsistencyTester(model=model, iterations=2)
+                import asyncio
+                result = asyncio.run(tester.test(task_prompt, context="Synthetic Lab Context"))
                 
-                # Normally we'd do:
-                # trace_id = router.execute(task_prompt, model_override=model)
-                # if auto_approve and success: recorder.approve_trace(trace_id)
+                if result["consistency_score"] >= 0.8:
+                    # Capture as a successful trace
+                    answer = mode.ask(task_prompt, model_override=model)
+                    recorder.record_trace(
+                        task=task_prompt,
+                        response=answer.content,
+                        model=model,
+                        trainable=True,
+                        category=difficulty
+                    )
+                    session.successful += 1
+                    progress.update(lab_task, description=f"Task {i+1}: [green]Approved (Score: {result['consistency_score']:.2f})[/green]")
+                else:
+                    session.failed += 1
+                    progress.update(lab_task, description=f"Task {i+1}: [red]Rejected (Score: {result['consistency_score']:.2f})[/red]")
                 
             except Exception as e:
+                console.print(f"[red]Error in task {i+1}: {str(e)}[/red]")
                 session.failed += 1
                 
             progress.advance(lab_task)

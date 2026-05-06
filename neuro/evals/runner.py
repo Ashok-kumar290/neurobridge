@@ -17,6 +17,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+import numpy as np
 
 from neuro.constants import HDD_EVALS
 
@@ -33,6 +34,9 @@ class EvalCase:
     expected_not_contains: list[str] = field(default_factory=list)  # must NOT contain these
     max_tokens: int = 1024
     metadata: dict[str, Any] = field(default_factory=dict)
+    semantic_check: bool = False  # If True, use embedding similarity
+    expected_semantic_similarity: float = 0.8  # Required score (0.0 to 1.0)
+    ideal_response: str | None = None  # Reference response for semantic check
 
 
 @dataclass
@@ -179,7 +183,28 @@ class EvalRunner:
             checks.append({"check": f"not_contains:{forbidden[:30]}", "passed": absent})
             if not absent:
                 passed = False
-
+        # ── Check: semantic similarity ─────────────────────────────────────
+        if case.semantic_check and case.ideal_response:
+            from neuro.training.optimizer import ConsistencyTester
+            tester = ConsistencyTester(model=model)
+            # Use calculate_consistency logic or similar
+            # Since we have Ollama embeddings now:
+            v_ref = np.array(self.client.embeddings(model, case.ideal_response))
+            v_resp = np.array(self.client.embeddings(model, response_text))
+            
+            if v_ref.any() and v_resp.any():
+                similarity = np.dot(v_ref, v_resp) / (np.linalg.norm(v_ref) * np.linalg.norm(v_resp))
+                passed_semantic = float(similarity) >= case.expected_semantic_similarity
+                checks.append({
+                    "check": "semantic_similarity", 
+                    "passed": passed_semantic, 
+                    "score": round(float(similarity), 4)
+                })
+                if not passed_semantic:
+                    passed = False
+            else:
+                checks.append({"check": "semantic_similarity", "passed": False, "error": "embedding failure"})
+                passed = False
         # ── Check: non-empty ───────────────────────────────────────────────
         if not response_text.strip():
             checks.append({"check": "non_empty", "passed": False})

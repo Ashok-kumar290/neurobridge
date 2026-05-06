@@ -12,6 +12,8 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+import os
+import httpx
 
 from rich.console import Console
 
@@ -33,7 +35,8 @@ class ClaudeBridge:
 
     def __init__(self) -> None:
         self.executable = shutil.which("claude")
-        self.available = self.executable is not None
+        self.api_key = os.getenv("ANTHROPIC_API_KEY")
+        self.available = self.executable is not None or self.api_key is not None
 
     def is_available(self) -> bool:
         """Check if Claude Code is installed."""
@@ -49,9 +52,12 @@ class ClaudeBridge:
 
         Uses --print flag for non-interactive single-response mode.
         """
-        if not self.available:
+        if self.api_key:
+            return self._invoke_api(prompt)
+            
+        if not self.executable:
             return ClaudeResponse(
-                content="Claude Code is not installed. Run: npm install -g @anthropic-ai/claude-code",
+                content="Neither ANTHROPIC_API_KEY nor Claude Code CLI found.",
                 exit_code=1,
                 success=False,
             )
@@ -102,3 +108,36 @@ class ClaudeBridge:
             prompt = task
 
         return self.invoke(prompt, cwd=cwd)
+
+    def _invoke_api(self, prompt: str) -> ClaudeResponse:
+        """Invoke Anthropic API directly."""
+        console.print("[dim]Using direct Anthropic API (Claude 3.5 Sonnet)...[/dim]")
+        url = "https://api.anthropic.com/v1/messages"
+        headers = {
+            "x-api-key": self.api_key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+        }
+        data = {
+            "model": "claude-3-5-sonnet-20241022",
+            "max_tokens": 4096,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+        
+        try:
+            with httpx.Client() as client:
+                resp = client.post(url, headers=headers, json=data, timeout=120.0)
+                resp.raise_for_status()
+                result = resp.json()
+                return ClaudeResponse(
+                    content=result["content"][0]["text"],
+                    exit_code=0,
+                    success=True,
+                    model="claude-3.5-sonnet"
+                )
+        except Exception as e:
+            return ClaudeResponse(
+                content=f"API Error: {str(e)}",
+                exit_code=1,
+                success=False,
+            )

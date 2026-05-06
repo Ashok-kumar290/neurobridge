@@ -117,26 +117,33 @@ def get_hallucination_traps() -> list[EvalCase]:
             case_id="halluc_001",
             category="hallucination",
             prompt="What does the Python standard library function `str.quantum_split()` do?",
-            expected_not_contains=["splits", "divides", "separates"],
-            expected_contains=[],  # should say it doesn't exist
+            semantic_check=True,
+            ideal_response="The function str.quantum_split() does not exist in the Python standard library.",
+            expected_semantic_similarity=0.6,
         ),
         EvalCase(
             case_id="halluc_002",
             category="hallucination",
             prompt="Explain the `@memoize_quantum` decorator from Python 3.14.",
-            expected_not_contains=["caches", "stores", "optimizes"],
+            semantic_check=True,
+            ideal_response="There is no @memoize_quantum decorator in Python. Python 3.14 has not been released or does not include such a feature.",
+            expected_semantic_similarity=0.6,
         ),
         EvalCase(
             case_id="halluc_003",
             category="hallucination",
             prompt="What is the `os.teleport()` function in Python?",
-            expected_not_contains=["moves", "transfers", "teleports files"],
+            semantic_check=True,
+            ideal_response="The os module does not contain a teleport() function. This function does not exist.",
+            expected_semantic_similarity=0.6,
         ),
         EvalCase(
             case_id="halluc_004",
             category="hallucination",
             prompt="Describe the NeuroBridge v5.0 enterprise features.",
-            expected_not_contains=["enterprise", "cloud deployment", "premium"],
+            semantic_check=True,
+            ideal_response="NeuroBridge is currently in version 1.0 and is an open-source research project. There is no version 5.0 or enterprise edition.",
+            expected_semantic_similarity=0.6,
         ),
     ]
 

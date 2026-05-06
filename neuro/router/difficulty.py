@@ -60,6 +60,31 @@ _EXPERT_SIGNALS = [
     "system design", "production deploy", "critical bug",
 ]
 
+class LLMDifficultyEstimator:
+    """Uses the 3B model to classify task difficulty beyond keywords."""
+
+    def __init__(self, model: str = "super-qwen:3b"):
+        self.model = model
+
+    def classify(self, query: str) -> float:
+        """Classifies difficulty 0.0-1.0 using the model."""
+        from neuro.runtime.ollama_client import get_ollama_client
+        ollama = get_ollama_client()
+        
+        prompt = (
+            "Classify the difficulty of this coding task from 0.0 (trivial) to 1.0 (extremely complex architecture).\n"
+            "Respond ONLY with a single float value.\n\n"
+            f"Task: {query}"
+        )
+        
+        try:
+            resp = ollama.generate(model=self.model, prompt=prompt, temperature=0.0)
+            score = float(resp.content.strip())
+            return max(0.0, min(1.0, score))
+        except:
+            return 0.5 # Fallback to medium
+
+
 
 def _count_signals(query: str, signals: list[str]) -> int:
     """Count how many signal phrases appear in the query."""
@@ -145,6 +170,15 @@ def estimate_difficulty(
     elif memory_hits > 0:
         score -= 0.1
         reasons.append(f"some memory hits ({memory_hits})")
+
+    # ── LLM Refinement (Layer 2 Classifier) ──────────────────────────────
+    try:
+        llm_score = LLMDifficultyEstimator().classify(query)
+        # Average the heuristic score with the model score
+        score = (score + llm_score) / 2
+        reasons.append(f"LLM classifier refined score (Model score: {llm_score:.2f})")
+    except:
+        pass
 
     # ── Clamp and classify ─────────────────────────────────────────────────
     score = max(0.0, min(1.0, score))
