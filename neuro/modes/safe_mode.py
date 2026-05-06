@@ -180,7 +180,12 @@ class SafeMode:
             )
 
         # 5. Build messages
+        from neuro.interpretability.lens import SteeringLens
+        lens = SteeringLens(model_name)
+        steering_prefix = lens.get_steering_prefix(query)
+
         system_prompt = (
+            f"{steering_prefix}\n"
             "You are NeuroBridge, a local AI coding assistant. "
             "Answer questions about the repository using the provided context. "
             "Be concise and precise. Cite specific files and line numbers. "

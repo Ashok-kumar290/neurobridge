@@ -1200,6 +1200,57 @@ def train_notebook(
     console.print(f"  5. Download the adapter zip")
     console.print(f"  6. Register: [cyan]neuro train register {adapter_name} /path/to/adapter.zip[/cyan]")
 
+@train_app.command("prune")
+def train_prune(
+    iterations: int = typer.Option(3, "--iterations", "-i", help="Consistency test iterations."),
+    threshold: float = typer.Option(0.7, "--threshold", "-t", help="Consistency score threshold."),
+) -> None:
+    """Run the Plasticity Engine to prune inconsistent (hallucinated) traces."""
+    from neuro.training.dataset_builder import DatasetBuilder
+    from neuro.training.optimizer import ConsistencyTester
+    from neuro.constants import HDD_TRACES
+    import shutil
+
+    builder = DatasetBuilder()
+    traces = builder.load_traces()
+    
+    if not traces:
+        console.print("[dim]No accepted traces to prune.[/dim]")
+        return
+
+    console.print(f"[bold cyan]Starting Plasticity Cycle (Consistency Check)...[/bold cyan]")
+    
+    flagged_dir = HDD_TRACES / "flagged"
+    flagged_dir.mkdir(parents=True, exist_ok=True)
+
+    pruned_count = 0
+    for trace in traces:
+        trace_id = trace.get("trace_id", "unknown")
+        task = trace.get("task", "")
+        # Get context from trace
+        context = ""
+        for step in trace.get("steps", []):
+            if step.get("step_type") == "context":
+                context += step.get("data", {}).get("content", "") + "\n"
+
+        tester = ConsistencyTester(model="super-qwen:7b", iterations=iterations)
+        # Use run() because ConsistencyTester is currently sync in my snippet
+        import asyncio
+        result = asyncio.run(tester.test(task, context))
+        
+        score = result["consistency_score"]
+        if score < threshold:
+            console.print(f"  [red]⚠ Pruning Trace {trace_id[:8]} (Score: {score:.2f})[/red]")
+            # Move to flagged
+            source_path = builder.traces_dir / f"{trace_id}.json"
+            if source_path.exists():
+                shutil.move(source_path, flagged_dir / f"{trace_id}.json")
+                pruned_count += 1
+        else:
+            console.print(f"  [green]✓ Kept Trace {trace_id[:8]} (Score: {score:.2f})[/green]")
+
+    console.print(f"\n[bold green]Plasticity Cycle Complete.[/bold green] Pruned {pruned_count} inconsistent traces.")
+
 
 @train_app.command("datasets")
 def train_datasets() -> None:
