@@ -1,107 +1,105 @@
-# 🧠 NeuroBridge: The Asymmetric Intelligence Layer
+# 🧠 NeuroBridge: The Offline AI Coding Assistant
 
 [![GitHub License](https://img.shields.io/github/license/Ashok-kumar290/neurobridge)](https://github.com/Ashok-kumar290/neurobridge/blob/main/LICENSE)
-[![Local Evals](https://img.shields.io/badge/Eval_Score-86%25-green)](https://github.com/Ashok-kumar290/neurobridge)
-[![Models](https://img.shields.io/badge/Models-Super--Qwen-blueviolet)](https://huggingface.co/Ashok-kumar290/super-qwen)
+[![Models](https://img.shields.io/badge/Models-Super--Qwen-blueviolet)](https://huggingface.co/Seyomi/super-qwen)
 
-**NeuroBridge** is a standalone AI coding intelligence layer designed for high-stakes, offline-first environments. It utilizes **Asymmetric Knowledge Distillation** to autonomously train and refine local, edge-resident models from your own professional workflows.
+**NeuroBridge** is an AI coding assistant that you install directly on your computer. It is designed to work completely offline, without needing an internet connection. 
 
-Built for **HFT nodes, privacy-mesh networks, and edge-native intelligence.**
+Instead of relying on expensive cloud subscriptions to write code, NeuroBridge watches how advanced AI models (like Claude or ChatGPT) solve your problems, secretly saves those interactions, and uses them to train your own local, smaller AI models to be just as smart. This allows you to run highly capable AI on cheap, low-power devices (like old smartphones or mini-computers) without compromising your privacy.
 
----
-
-## 🚀 The "Monster" Pipeline
-
-NeuroBridge implements an **Asymmetric Distillation Loop**. It treats frontier models as temporary teachers to bootstrap local "System 1/System 2" intelligence.
-
-1.  **Autonomous Routing**: A 3B-parameter Router triages incoming tasks.
-2.  **Expert Escalation**: Complex architectural tasks are compressed into "Expert Packets" and routed to Claude Code.
-3.  **Trace Capture**: Every expert interaction is intercepted and recorded as a high-fidelity **Trace**.
-4.  **Local Assimilation**: Traces are compiled into QLoRA datasets.
-5.  **Edge Promotion**: New adapters are trained on free Colab GPUs and brought back to run 100% offline.
+This was specifically built for highly sensitive environments like automated trading bots, where you cannot risk sending your code to the cloud or relying on Wi-Fi.
 
 ---
 
-## 🛠 Features
+## 🚀 How It Works (The Self-Learning Loop)
 
-### 📡 System 1 / System 2 Thinking
-- **System 1 (Router - 3B)**: Instant, zero-latency triage. Handles 80% of daily logic.
-- **System 2 (Coder - 7B)**: Invoked for heavy lifting. High-density coding intelligence.
+NeuroBridge gets smarter over time by running a continuous learning loop:
 
-### 🛡️ Hardened Safety
-- **Algorithmic Command Scanner**: Physically blocks destructive shell commands (e.g., `rm -rf /`).
-- **Secret Detector**: Scans outgoing packets for API keys and credentials.
-- **Air-Gapped Training**: No SSH or remote access required. We export datasets and import GGUF adapters.
-
-### 💾 HDD-Resident Brain
-- **RAG-Powered Memory**: Persistent vector indexing of your entire codebase and interaction history.
-- **Checkpoint Manager**: Automatic snapshotting and one-click rollbacks for all model states.
+1. **Smart Routing**: When you ask a question, a very small and fast AI model (the "Router") looks at it. If it is easy, it answers immediately.
+2. **Asking the Experts**: If the task is too difficult, NeuroBridge secretly forwards the question to a cloud AI like Claude (if you have internet).
+3. **Recording the Process**: NeuroBridge watches exactly how Claude solves the problem and saves the entire step-by-step process to your hard drive.
+4. **Training Local Models**: Later, NeuroBridge bundles all of these saved answers together and uses them to train your local, offline AI models to copy Claude's behavior.
+5. **Running Offline**: Now, your local AI is smart enough to handle those difficult tasks completely offline, without ever needing Claude again.
 
 ---
 
-## 📊 Benchmark Results (v1.0 Baseline)
+## 🛠 Core Features
 
-| Category | Pass Rate | Observation |
+### 📡 Two-Brain System
+- **The Fast Brain (3 Billion Parameters)**: Instant answers for 80% of your daily coding questions. Uses very little computer memory.
+- **The Heavy Brain (7 Billion Parameters)**: Only wakes up when you need complex architecture or deep problem-solving.
+
+### 🛡️ Strict Safety Controls
+Because AI can sometimes make mistakes, NeuroBridge has strict rules:
+- **Command Blocker**: It physically prevents the AI from running dangerous terminal commands (like deleting your hard drive).
+- **Secret Protection**: It scans everything before it goes to the cloud to ensure it never accidentally leaks your passwords or API keys.
+- **Air-Gapped Ready**: You can export your training data to a USB stick, train the models on a separate computer, and bring the upgraded AI back to your offline device.
+
+### 💾 Hard Drive Memory
+- **Codebase Memory**: NeuroBridge constantly reads and indexes your code so it always knows what you are working on.
+- **Automatic Backups**: It saves snapshots of its own brain. If a new update makes the AI perform worse, you can roll back with one click.
+
+### 🌐 The "Invisible" Offline Mode
+NeuroBridge installs a special proxy on your computer. If you normally use the `claude` command in your terminal, NeuroBridge intercepts it:
+- **If you have internet:** It lets the command go to Claude, but secretly records the answer to train itself.
+- **If your internet goes down:** It silently steps in and uses your local offline AI to answer the question, making it look exactly like Claude is still working. You never have to change your habits.
+
+---
+
+## 📊 Benchmark Results
+
+We tested the local offline AI against a set of difficult challenges to see how well it performs:
+
+| Test Category | Pass Rate | What this means |
 | :--- | :---: | :--- |
-| **Coding** | 88% | High proficiency in Python/JS/Rust. |
-| **Recall** | 100% | Perfect retrieval from HDD memory. |
-| **Safety** | 100% | Successfully blocked all 4 jailbreak attempts. |
-| **Hallucination** | 50% | Targeted area for first QLoRA distillation. |
+| **Coding Ability** | **88%** | It successfully wrote working Python, JavaScript, and Rust code for most tasks. |
+| **Memory Recall** | **100%** | It flawlessly remembered past conversations and code snippets saved to the hard drive. |
+| **Safety Tests** | **100%** | We tried to trick it into running dangerous commands 4 times, and it successfully blocked all of them. |
+| **Hallucination** | **50%** | It sometimes confidently made up incorrect answers. *This is why we built the self-learning loop—to train it not to do this.* |
 
-**Overall Score: 86%**
+**Overall Grade: 86%**
 
 ---
 
 ## 📦 Installation
 
 ```bash
-# Clone and Install
+# Download the code
 git clone https://github.com/Ashok-kumar290/neurobridge.git
 cd neurobridge
+
+# Install the software
 pip install .
 
-# Initialize the HDD Brain
+# Setup the memory folder on your hard drive
 neuro init /media/user/external_hdd/neurobridge
 ```
 
-## ⌨️ Basic Usage
+## ⌨️ Basic Commands
 
-### Code with Expert Help (and Capture Traces)
+### Ask an Expert (and record the answer for later training)
 ```bash
-neuro code "Refactor the authentication logic to use BLAKE3 hashing" --expert claude
+neuro code "Refactor the authentication logic" --expert claude
 ```
 
-### Global Interceptors (Phantom Network)
-NeuroBridge seamlessly intercepts the global `claude` and `codex` CLIs on your machine.
-- If you have internet: It passes the command to the real API and secretly captures the trace.
-- If you are offline: It automatically reroutes the prompt to your local `Super-Qwen 7B` model without changing your workflow.
-```bash
-claude "Analyze this repository for vulnerabilities"  # Handled offline seamlessly
-```
-
-### Self-Learning Lab Mode
+### Let the AI practice by itself
 ```bash
 neuro lab run --iterations 10
 ```
 
-### Evaluation
+### Test the AI's current intelligence
 ```bash
 neuro eval run all --model super-qwen:7b
 ```
 
 ---
 
-## 🗺 Roadmap
+## 🗺 What's Next?
 
-- [x] Phase 1-9: Core Architecture & Distillation Loop.
-- [x] Phase 10: The Living Brain (Super-Qwen & Mechanistic Interpretability Lens).
-- [x] Phase 11: Phantom Network Mesh (Node Identity, Adapter Sync & CLI Interceptors).
-- [ ] Phase 12: HFT Trading Node optimized adapters.
-
-## 🌍 Community & Contribution
-Built by **seyominaoto** / **Ashok-kumar290**. 
-
-Contributions are welcome! Please see [SAFETY.md](SAFETY.md) for our guidelines on autonomous agent security.
+- [x] Build the core AI tools and the recording system.
+- [x] Build the automated testing and hallucination blockers.
+- [x] Build the "Invisible" offline proxy network.
+- [ ] Optimize the AI models specifically to run stock-trading bots on low-power devices (Nokia Android phones).
 
 ---
-*NeuroBridge — Building the bridge between edge hardware and frontier intelligence.*
+*NeuroBridge — Powerful AI that actually stays on your computer.*
