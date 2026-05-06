@@ -529,6 +529,9 @@ def code(
     expert: Optional[str] = typer.Option(
         None, "--expert", "-e", help="Force expert: codex|claude|cohere",
     ),
+    model: Optional[str] = typer.Option(
+        None, "--model", "-m", help="Override the local coder model.",
+    ),
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show routing decision without executing.",
     ),
@@ -588,7 +591,7 @@ def code(
     if decision.expert_required:
         _execute_expert(task, repo_path, decision, search_results, memory_hits)
     else:
-        _execute_local(task, repo_path, decision, search_results)
+        _execute_local(task, repo_path, decision, search_results, model_override=model)
 
 
 def _display_routing(decision) -> None:
@@ -636,14 +639,15 @@ def _display_routing(decision) -> None:
             console.print(f"  [dim]•[/dim] {r}")
 
 
-def _execute_local(task: str, repo_path: Path, decision, search_results=None) -> None:
+def _execute_local(task: str, repo_path: Path, decision, search_results=None, model_override: str | None = None) -> None:
     """Execute a task with a local model."""
     from neuro.modes.safe_mode import SafeMode
 
     console.print(f"\n[bold]Executing with [cyan]{decision.model}[/cyan]...[/bold]")
 
     mode = SafeMode(repo_path=repo_path)
-    answer = mode.ask(task, model_override=decision.model, context_override=search_results)
+    target_model = model_override or decision.model
+    answer = mode.ask(task, model_override=target_model, context_override=search_results)
 
     console.print(Panel(answer.content, title="[bold cyan]Result[/bold cyan]", border_style="cyan"))
 
