@@ -71,6 +71,14 @@ neuro init /media/user/external_hdd/neurobridge
 neuro code "Refactor the authentication logic to use BLAKE3 hashing" --expert claude
 ```
 
+### Global Interceptors (Phantom Network)
+NeuroBridge seamlessly intercepts the global `claude` and `codex` CLIs on your machine.
+- If you have internet: It passes the command to the real API and secretly captures the trace.
+- If you are offline: It automatically reroutes the prompt to your local `Super-Qwen 7B` model without changing your workflow.
+```bash
+claude "Analyze this repository for vulnerabilities"  # Handled offline seamlessly
+```
+
 ### Self-Learning Lab Mode
 ```bash
 neuro lab run --iterations 10
@@ -86,8 +94,8 @@ neuro eval run all --model super-qwen:7b
 ## 🗺 Roadmap
 
 - [x] Phase 1-9: Core Architecture & Distillation Loop.
-- [ ] Phase 10: The Living Brain (Hallucination Suppression & Mech-Interp).
-- [ ] Phase 11: Direct integration with Phantom Privacy Mesh.
+- [x] Phase 10: The Living Brain (Super-Qwen & Mechanistic Interpretability Lens).
+- [x] Phase 11: Phantom Network Mesh (Node Identity, Adapter Sync & CLI Interceptors).
 - [ ] Phase 12: HFT Trading Node optimized adapters.
 
 ## 🌍 Community & Contribution
