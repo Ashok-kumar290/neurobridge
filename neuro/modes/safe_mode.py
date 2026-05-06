@@ -133,7 +133,7 @@ class SafeMode:
             self.config.router.context,
         )
 
-    def ask(self, query: str, model_override: str | None = None) -> AskAnswer:
+    def ask(self, query: str, model_override: str | None = None, context_override: list[SearchResult] | None = None) -> AskAnswer:
         """Answer a question about the repository.
 
         Flow:
@@ -147,7 +147,15 @@ class SafeMode:
         start_time = time.time()
 
         # 1-2. Build context from repo + memory (4 chunks max for CPU)
-        context, sources = self._build_context(query, max_chunks=4)
+        if context_override:
+            context_parts = []
+            sources = []
+            for r in context_override:
+                context_parts.append(f"File: {r.file_path}\n```{r.language}\n{r.content}\n```")
+                sources.append(f"{r.file_path}:{r.start_line}")
+            context = "\n\n".join(context_parts)
+        else:
+            context, sources = self._build_context(query, max_chunks=4)
 
         # 3. Select model
         if model_override:

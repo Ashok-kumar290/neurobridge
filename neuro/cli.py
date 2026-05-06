@@ -533,11 +533,17 @@ def code(
     memory = SessionMemory()
     memory_hits = memory.search(task, limit=5)
 
+    # ── Build Context String ───────────────────────────────────────────────
+    context_parts = []
+    for r in search_results:
+        context_parts.append(f"File: {r.file_path}\n```{r.language}\n{r.content}\n```")
+    context_text = "\n\n".join(context_parts)
+
     # ── Route the task ─────────────────────────────────────────────────────
     router = Router()
     decision = router.route(
         query=task,
-        context="",
+        context=context_text,
         file_count=file_count,
         memory_hits=len(memory_hits),
         search_score=search_score,
@@ -555,7 +561,7 @@ def code(
     if decision.expert_required:
         _execute_expert(task, repo_path, decision, search_results, memory_hits)
     else:
-        _execute_local(task, repo_path, decision)
+        _execute_local(task, repo_path, decision, search_results)
 
 
 def _display_routing(decision) -> None:
@@ -603,14 +609,14 @@ def _display_routing(decision) -> None:
             console.print(f"  [dim]•[/dim] {r}")
 
 
-def _execute_local(task: str, repo_path: Path, decision) -> None:
+def _execute_local(task: str, repo_path: Path, decision, search_results=None) -> None:
     """Execute a task with a local model."""
     from neuro.modes.safe_mode import SafeMode
 
     console.print(f"\n[bold]Executing with [cyan]{decision.model}[/cyan]...[/bold]")
 
     mode = SafeMode(repo_path=repo_path)
-    answer = mode.ask(task, model_override=decision.model)
+    answer = mode.ask(task, model_override=decision.model, context_override=search_results)
 
     console.print(Panel(answer.content, title="[bold cyan]Result[/bold cyan]", border_style="cyan"))
 

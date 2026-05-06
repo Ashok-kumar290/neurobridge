@@ -4,7 +4,7 @@
 [![Local Evals](https://img.shields.io/badge/Eval_Score-86%25-green)](https://github.com/Ashok-kumar290/neurobridge)
 [![Models](https://img.shields.io/badge/Models-Super--Qwen-blueviolet)](https://huggingface.co/Ashok-kumar290/super-qwen)
 
-**NeuroBridge** is a standalone AI coding intelligence layer designed for high-stakes, offline-first environments. It allows you to "parasitize" the intelligence of cloud-scale models (Claude, Codex) to autonomously train and refine local, edge-resident models.
+**NeuroBridge** is a standalone AI coding intelligence layer designed for high-stakes, offline-first environments. It utilizes **Asymmetric Knowledge Distillation** to autonomously train and refine local, edge-resident models from your own professional workflows.
 
 Built for **HFT nodes, privacy-mesh networks, and edge-native intelligence.**
 
@@ -86,7 +86,7 @@ neuro eval run all --model super-qwen:7b
 ## 🗺 Roadmap
 
 - [x] Phase 1-9: Core Architecture & Distillation Loop.
-- [ ] Phase 10: Multi-agent Lab Mode (Self-play).
+- [ ] Phase 10: The Living Brain (Hallucination Suppression & Mech-Interp).
 - [ ] Phase 11: Direct integration with Phantom Privacy Mesh.
 - [ ] Phase 12: HFT Trading Node optimized adapters.
 

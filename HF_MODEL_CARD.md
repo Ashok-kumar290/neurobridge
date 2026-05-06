@@ -20,8 +20,8 @@ This model is designed to run on resource-constrained edge hardware (like HFT no
 
 ## 🚀 Key Features
 
-- **Distilled Intelligence**: Trained on high-quality traces from Claude 3.5 Sonnet and Codex.
-- **System 2 Optimized**: Designed specifically for heavy architectural tasks when routed by the NeuroBridge 3B triage layer.
+- **Personal Distillation**: Designed to be fine-tuned on your own private coding traces.
+- **Workflow Capture**: The NeuroBridge framework supports self-supervised learning from your professional intellectual workflow.
 - **Format**: GGUF (Optimized for Ollama/Llama.cpp).
 
 ## 📊 Evaluation Results (Base + Distillation)
