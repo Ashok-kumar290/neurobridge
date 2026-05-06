@@ -53,7 +53,7 @@ class OllamaClient:
     """Client for the Ollama REST API."""
 
     base_url: str = OLLAMA_BASE_URL
-    timeout: float = 600.0  # 10 min — generous for CPU inference on i5 with HDD I/O
+    timeout: float = 1200.0  # 20 min — very generous for high-context CPU inference on HDD
     _client: httpx.Client = field(init=False, repr=False)
 
     def __post_init__(self) -> None:

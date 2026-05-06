@@ -15,6 +15,8 @@ class NodeDaemon:
 
     def __init__(self, port: int = 9999, secret_key: bytes | None = None):
         self.port = port
+        from neuro.network.identity import load_or_create_identity
+        self.identity = load_or_create_identity()
         self.secret_key = secret_key or nacl.utils.random(nacl.secret.SecretBox.KEY_SIZE)
         self.box = nacl.secret.SecretBox(self.secret_key)
         self.running = False
@@ -26,6 +28,7 @@ class NodeDaemon:
         self._server_thread = threading.Thread(target=self._run_server, daemon=True)
         self._server_thread.start()
         console.print(f"[bold green]✓ Phantom Node Daemon active on port {self.port}[/bold green]")
+        console.print(f"[dim]Node Identity (Pub): {self.identity.public_key_hex}[/dim]")
 
     def _run_server(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -51,6 +54,12 @@ class NodeDaemon:
         elif msg_type == "trace_packet":
             console.print(f"[cyan]Received expert trace from {addr[0]}. Distilling...[/cyan]")
             # In Phase 11, this would trigger the training loop
+        elif msg_type == "sync_req":
+            from neuro.network.sync import handle_sync_req
+            handle_sync_req(message, addr, self)
+        elif msg_type == "sync_req":
+            from neuro.network.sync import handle_sync_req
+            handle_sync_req(message, addr, self)
 
     def send_packet(self, target_ip: str, message: dict[str, Any]):
         """Encrypt and send a packet to another node."""

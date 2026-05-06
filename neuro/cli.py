@@ -103,6 +103,28 @@ def network_ping(target: str = typer.Argument(..., help="Target IP address.")) -
     daemon.send_packet(target, {"type": "ping", "sender": "local_node"})
     console.print(f"[dim]Sent ping to {target}...[/dim]")
 
+@network_app.command("sync")
+def network_sync(
+    adapter_id: str = typer.Argument(..., help="The ID of the adapter to sync."),
+    target: str = typer.Argument(..., help="Target node IP address.")
+) -> None:
+    """Request a QLoRA adapter from a remote node."""
+    from neuro.network.daemon import NodeDaemon
+    console.print(f"[cyan]Requesting adapter {adapter_id!r} from {target}...[/cyan]")
+    daemon = NodeDaemon()
+    daemon.send_packet(target, {"type": "sync_req", "adapter_id": adapter_id, "sender": "local_node"})
+
+@network_app.command("sync")
+def network_sync(
+    adapter_id: str = typer.Argument(..., help="The ID of the adapter to sync."),
+    target: str = typer.Argument(..., help="Target node IP address.")
+) -> None:
+    """Request a QLoRA adapter from a remote node."""
+    from neuro.network.daemon import NodeDaemon
+    console.print(f"[cyan]Requesting adapter '{adapter_id}' from {target}...[/cyan]")
+    daemon = NodeDaemon()
+    daemon.send_packet(target, {"type": "sync_req", "adapter_id": adapter_id, "sender": "local_node"})
+
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # neuro init

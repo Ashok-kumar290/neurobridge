@@ -33,8 +33,8 @@ OLLAMA_API_PULL = f"{OLLAMA_BASE_URL}/api/pull"
 OLLAMA_API_EMBEDDINGS = f"{OLLAMA_BASE_URL}/api/embeddings"
 
 # ── Model identifiers ─────────────────────────────────────────────────────────
-MODEL_ROUTER = "llama3.2:latest"
-MODEL_CODER = "phi3:latest"
+MODEL_ROUTER = "super-qwen:3b"
+MODEL_CODER = "super-qwen:7b"
 MODEL_COHERE_PLANNER = "command-a-03-2025"
 MODEL_COHERE_REASONING = "command-a-reasoning-08-2025"
 MODEL_COHERE_FAST = "command-r7b-12-2024"
@@ -43,7 +43,7 @@ MODEL_COHERE_RERANK = "rerank-v4.0-fast"
 
 # ── Local model context limits ────────────────────────────────────────────────
 ROUTER_CONTEXT_WINDOW = 4096
-CODER_CONTEXT_WINDOW = 4096
+CODER_CONTEXT_WINDOW = 2048
 
 # ── Defaults ───────────────────────────────────────────────────────────────────
 DEFAULT_MODE = "safe"
