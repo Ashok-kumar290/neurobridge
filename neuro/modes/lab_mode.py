@@ -91,7 +91,7 @@ def run_lab(
         help="Number of autonomous tasks to execute."
     ),
     model: str = typer.Option(
-        "llama3.2:latest", "--model", "-m", 
+        "phi3:latest", "--model", "-m", 
         help="Model to use for self-learning."
     ),
     auto_approve: bool = typer.Option(

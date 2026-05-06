@@ -34,7 +34,7 @@ OLLAMA_API_EMBEDDINGS = f"{OLLAMA_BASE_URL}/api/embeddings"
 
 # ── Model identifiers ─────────────────────────────────────────────────────────
 MODEL_ROUTER = "llama3.2:latest"
-MODEL_CODER = "llama3.2:latest"
+MODEL_CODER = "phi3:latest"
 MODEL_COHERE_PLANNER = "command-a-03-2025"
 MODEL_COHERE_REASONING = "command-a-reasoning-08-2025"
 MODEL_COHERE_FAST = "command-r7b-12-2024"

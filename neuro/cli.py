@@ -66,6 +66,7 @@ traces_app = typer.Typer(help="Trace management.")
 evals_app = typer.Typer(help="Evaluation benchmarks.")
 train_app = typer.Typer(help="Training & adapter management.")
 lab_app = typer.Typer(help="Autonomous self-learning sandbox.")
+network_app = typer.Typer(help="Decentralized Phantom Network management.")
 
 app.add_typer(config_app, name="config")
 app.add_typer(models_app, name="models")
@@ -75,6 +76,32 @@ app.add_typer(traces_app, name="traces")
 app.add_typer(evals_app, name="eval")
 app.add_typer(train_app, name="train")
 app.add_typer(lab_app, name="lab")
+app.add_typer(network_app, name="network")
+
+
+# ── Network ──────────────────────────────────────────────────────────────────
+
+@network_app.command("start")
+def network_start(port: int = typer.Option(9999, "--port", "-p", help="Port to listen on.")) -> None:
+    """Start the Phantom Network daemon."""
+    from neuro.network.daemon import NodeDaemon
+    daemon = NodeDaemon(port=port)
+    daemon.start()
+    # Keep main thread alive
+    import time
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        daemon.running = False
+
+@network_app.command("ping")
+def network_ping(target: str = typer.Argument(..., help="Target IP address.")) -> None:
+    """Ping a remote NeuroBridge node."""
+    from neuro.network.daemon import NodeDaemon
+    daemon = NodeDaemon() # Just to use the send_packet method
+    daemon.send_packet(target, {"type": "ping", "sender": "local_node"})
+    console.print(f"[dim]Sent ping to {target}...[/dim]")
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
