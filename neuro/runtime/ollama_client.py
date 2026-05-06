@@ -184,6 +184,14 @@ class OllamaClient:
             done=data.get("done", True),
         )
 
+    def embeddings(self, model: str, prompt: str) -> list[float]:
+        """Get embeddings for a prompt."""
+        from neuro.constants import OLLAMA_API_EMBEDDINGS
+        payload = {"model": model, "prompt": prompt}
+        resp = self._client.post(OLLAMA_API_EMBEDDINGS, json=payload)
+        resp.raise_for_status()
+        return resp.json().get("embedding", [])
+
     def chat_stream(
         self,
         model: str,

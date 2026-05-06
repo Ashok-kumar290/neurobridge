@@ -39,30 +39,59 @@ class ConsistencyTester:
         }
 
     def _calculate_consistency(self, responses: list[str]) -> float:
-        """Simple n-gram overlap or length variance check for now."""
-        if not responses:
+        """Calculates semantic consistency using cosine similarity of embeddings."""
+        if len(responses) < 2:
+            return 1.0
+        
+        import numpy as np
+        
+        # Get embeddings for all responses
+        embeddings = []
+        for resp in responses:
+            emb = self.ollama.embeddings(model=self.model, prompt=resp)
+            if emb:
+                embeddings.append(emb)
+
+        if not embeddings:
             return 0.0
-        
-        # Placeholder: Real implementation would use cross-embeddings
-        # For now, we check length stability and keyword overlap
-        lengths = [len(r) for r in responses]
-        avg_len = sum(lengths) / len(lengths)
-        variance = sum((l - avg_len)**2 for l in lengths) / len(lengths)
-        
-        # Low variance in length + high keyword overlap = consistent
-        # This is a crude proxy for the Living Brain modules
-        stability = 1.0 / (1.0 + (variance / 1000.0))
-        return stability
+
+        # Calculate pairwise cosine similarities
+        def cosine_similarity(a, b):
+            return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+
+        similarities = []
+        for i in range(len(embeddings)):
+            for j in range(i + 1, len(embeddings)):
+                similarities.append(cosine_similarity(embeddings[i], embeddings[j]))
+
+        return float(np.mean(similarities)) if similarities else 0.0
 
 class PlasticityEngine:
     """Manages the 'stale weight' pruning and optimization cycle."""
 
-    def __init__(self):
-        self.tester = None
+    def __init__(self, model: str):
+        self.model = model
+        self.tester = ConsistencyTester(model)
 
-    def run_cycle(self, traces: list[dict]):
-        """Processes a batch of traces, identifies hallucinations, and prunes dataset."""
-        # 1. Verify traces against consistency
-        # 2. Reject traces that fail the consistency check
-        # 3. Mark successful traces for QLoRA promotion
-        pass
+    async def run_cycle(self, traces: list[dict]) -> list[dict]:
+        """Processes a batch of traces and prunes those with low consistency."""
+        clean_traces = []
+        
+        console.print(f"[bold cyan]Initiating Plasticity Cycle for {len(traces)} traces...[/bold cyan]")
+        
+        for trace in traces:
+            task = trace.get("task", "")
+            context = ""
+            for step in trace.get("steps", []):
+                if step.get("step_type") == "context":
+                    context += step.get("data", {}).get("content", "") + "\n"
+            
+            result = await self.tester.test(task, context)
+            
+            if not result["is_hallucinating"]:
+                clean_traces.append(trace)
+                console.print(f"  [green]✓ Trace {trace.get('trace_id', '???')[:8]} preserved.[/green]")
+            else:
+                console.print(f"  [red]⚠ Trace {trace.get('trace_id', '???')[:8]} pruned (Hallucination detected).[/red]")
+                
+        return clean_traces

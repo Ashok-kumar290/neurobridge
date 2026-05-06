@@ -30,6 +30,7 @@ OLLAMA_API_CHAT = f"{OLLAMA_BASE_URL}/api/chat"
 OLLAMA_API_TAGS = f"{OLLAMA_BASE_URL}/api/tags"
 OLLAMA_API_SHOW = f"{OLLAMA_BASE_URL}/api/show"
 OLLAMA_API_PULL = f"{OLLAMA_BASE_URL}/api/pull"
+OLLAMA_API_EMBEDDINGS = f"{OLLAMA_BASE_URL}/api/embeddings"
 
 # ── Model identifiers ─────────────────────────────────────────────────────────
 MODEL_ROUTER = "llama3.2:latest"
