@@ -57,9 +57,13 @@ class NodeDaemon:
         elif msg_type == "sync_req":
             from neuro.network.sync import handle_sync_req
             handle_sync_req(message, addr, self)
-        elif msg_type == "sync_req":
-            from neuro.network.sync import handle_sync_req
-            handle_sync_req(message, addr, self)
+        elif msg_type == "sync_ack":
+            from neuro.network.sync import receive_adapter
+            import threading
+            # Start receiver in a separate thread so it doesnt block the daemon
+            threading.Thread(target=receive_adapter, args=(message, self), daemon=True).start()
+        elif msg_type == "sync_nack":
+            console.print(f"[red]Peer {addr[0]} rejected sync: {message.get("reason")}[/red]")
 
     def send_packet(self, target_ip: str, message: dict[str, Any]):
         """Encrypt and send a packet to another node."""

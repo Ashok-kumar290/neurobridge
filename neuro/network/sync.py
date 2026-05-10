@@ -54,3 +54,46 @@ def handle_sync_req(message: dict[str, Any], addr: tuple[str, int], daemon) -> N
         console.print("[bold green]Stream complete![/bold green]")
     except Exception as e:
         console.print(f"[red]Failed to stream to {addr[0]}: {e}[/red]")
+
+def receive_adapter(message: dict[str, Any], daemon) -> None:
+    """Open a listener to receive an adapter stream from a peer."""
+    adapter_id = message.get("adapter_id")
+    expected_hash = message.get("hash")
+    file_size = message.get("size")
+    
+    save_path = Path.home() / ".neurobridge" / "adapters" / f"{adapter_id}.gguf"
+    save_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    console.print(f"[cyan]Opening stream port for {adapter_id} ({file_size / 1024 / 1024:.1f} MB)...[/cyan]")
+    
+    # Open listener on Port + 1
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.bind(("", daemon.port + 1))
+        s.listen(1)
+        s.settimeout(30) # Wait 30s for the peer to connect
+        
+        try:
+            conn, addr = s.accept()
+            with conn:
+                console.print(f"[green]Receiving data from {addr[0]}...[/green]")
+                with open(save_path, "wb") as f:
+                    received_bytes = 0
+                    while received_bytes < file_size:
+                        chunk = conn.recv(CHUNK_SIZE)
+                        if not chunk: break
+                        f.write(chunk)
+                        received_bytes += len(chunk)
+            
+            # Verify Integrity
+            actual_hash = compute_hash(save_path)
+            if actual_hash == expected_hash:
+                console.print(f"[bold green]✓ Adapter {adapter_id} synced and verified![/bold green]")
+            else:
+                console.print(f"[bold red]✗ Hash mismatch! Corruption detected.[/bold red]")
+                save_path.unlink(missing_ok=True)
+                
+        except socket.timeout:
+            console.print("[red]Stream timed out. Peer failed to connect.[/red]")
+        except Exception as e:
+            console.print(f"[red]Error during sync: {e}[/red]")

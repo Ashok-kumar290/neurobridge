@@ -178,3 +178,73 @@ class AdapterManager:
                 for status in ["registered", "tested", "promoted", "retired"]
             },
         }
+
+    def compute_next_rank(self) -> int:
+        """Compute the next LoRA rank based on adapter history.
+
+        This implements the 'dynamic growth' mechanism:
+        - Starts at rank 16
+        - If the last adapter's eval scores improved, keep the same rank
+        - If they plateaued (< 2% improvement), double the rank
+        - Never exceeds MAX_LORA_RANK (64)
+
+        The intuition: when a rank can no longer compress new information,
+        the model needs more capacity — like growing new neurons.
+        """
+        from neuro.constants import DEFAULT_LORA_RANK, MAX_LORA_RANK
+
+        adapters = self.list_adapters()
+        if not adapters:
+            return DEFAULT_LORA_RANK
+
+        # Find the last two promoted adapters to compare
+        promoted = [a for a in adapters if a.get("status") in ("promoted", "retired")]
+        if len(promoted) < 2:
+            # Not enough history — use the last adapter's rank
+            last = adapters[-1]
+            return min(last.get("lora_rank", DEFAULT_LORA_RANK), MAX_LORA_RANK)
+
+        prev = promoted[-2]
+        curr = promoted[-1]
+
+        # Compare eval scores
+        prev_scores = prev.get("eval_scores", {})
+        curr_scores = curr.get("eval_scores", {})
+
+        if not prev_scores or not curr_scores:
+            return curr.get("lora_rank", DEFAULT_LORA_RANK)
+
+        # Calculate average improvement
+        common_keys = set(prev_scores.keys()) & set(curr_scores.keys())
+        if not common_keys:
+            return curr.get("lora_rank", DEFAULT_LORA_RANK)
+
+        improvements = [
+            curr_scores[k] - prev_scores[k]
+            for k in common_keys
+        ]
+        avg_improvement = sum(improvements) / len(improvements)
+
+        current_rank = curr.get("lora_rank", DEFAULT_LORA_RANK)
+
+        if avg_improvement < 0.02:
+            # Plateaued — grow capacity
+            new_rank = min(current_rank * 2, MAX_LORA_RANK)
+            return new_rank
+        else:
+            # Still improving — keep current rank
+            return current_rank
+
+    def get_growth_history(self) -> list[dict[str, Any]]:
+        """Get the rank growth history across all adapters."""
+        adapters = self.list_adapters()
+        return [
+            {
+                "name": a.get("name"),
+                "rank": a.get("lora_rank"),
+                "examples": a.get("training_examples"),
+                "scores": a.get("eval_scores", {}),
+                "status": a.get("status"),
+            }
+            for a in adapters
+        ]

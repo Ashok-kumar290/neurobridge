@@ -36,10 +36,82 @@ memory/
 evals/reports/
 logs/
 checkpoints/
+brain/
+data/
+repos/
+scratch/
+backups/
 
-# User-specific config
+# Ollama model blobs (multi-GB; pulled separately on each machine)
+# Modelfiles are kept (they're tiny text config); only the weights are excluded
+models/blobs/
+models/manifests/
+
+# User-specific config & secrets
 config/neurobridge.yaml
 .neurobridge/
+.env
+.env.*
+*.pem
+*.key
+
+# Runtime / paper-trading state (private to user)
+*.log
+*.pid
+.btc_paper_pid
+state.json
+state_*.json
+trade_logs*.json
+investor_ledger*.json
+portfolio.json
+forex_state.json
+forex_mock_report.md
+remote_instructions.txt
+PROGRESS_REPORT.md
+monitor_heartbeat.txt
+
+# Generated images/plots
+brain_surgery_results.png
+
+# Standalone analysis script (rooted in private trade data)
+brain_surgery.py
+diagnose_models.py
+dashboard_server.py
+paper_trading_launcher.sh
+status.sh
+watchdog*.sh
+
+# Rust / cargo build artifacts (auto-generated, hundreds of MB)
+target/
+**/target/
+*.rlib
+*.rmeta
+
+# Compiled extensions and caches inside finance module
+neuro/finance/.cache/
+neuro/finance/harvester/target/
+*.so
+
+# Mythos training payload zips (private)
+neuro/mythos/*.zip
+neuro/mythos/colab_export/
+
+# ─── PRIVATE MODULES (not for public repo) ────────────────────────────────────
+# Trading bot, distillation pipeline, dashboards — keep these out of public push
+neuro/finance/
+neuro/mythos/
+neuro/tui/dashboard.py
+neuro/tui/portfolio_dash.py
+neuro/tui/trade_dash.py
+tests/comprehensive_backtest.py
+tests/test_finance_models.py
+tests/test_interceptor_live.py
+
+# Editor / OS junk
+.idea/
+.vscode/
+*.swp
+*.swo
 
 # OS specific
 .DS_Store

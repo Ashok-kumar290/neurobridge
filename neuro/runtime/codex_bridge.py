@@ -32,6 +32,7 @@ class CodexBridge:
     def __init__(self) -> None:
         self.executable = shutil.which("codex")
         self.available = self.executable is not None
+        self._session_id: str | None = None  # set after first call, used for resume
 
     def is_available(self) -> bool:
         """Check if Codex CLI is installed."""
@@ -41,12 +42,13 @@ class CodexBridge:
         self,
         prompt: str,
         cwd: Path | None = None,
-        approval_mode: str = "suggest",
+        bypass_sandbox: bool = True,
+        sandbox_mode: str = "danger-full-access",
     ) -> CodexResponse:
         """Invoke Codex CLI with a prompt.
 
-        Uses --quiet flag for non-interactive output.
-        approval_mode: "suggest" (default), "auto-edit", or "full-auto"
+        Uses `codex exec` for non-interactive mode and writes only the
+        final message to a temp file (bypasses the verbose transcript).
         """
         if not self.available:
             return CodexResponse(
@@ -55,12 +57,32 @@ class CodexBridge:
                 success=False,
             )
 
+        import tempfile
+
+        # Capture only the final agent message via -o
+        with tempfile.NamedTemporaryFile(
+            mode="r", suffix=".txt", delete=False, encoding="utf-8"
+        ) as tmp:
+            output_file = tmp.name
+
+        # Support resuming an existing session for persistent context
         cmd = [
             self.executable,
-            "--quiet",
-            "--approval-mode", approval_mode,
-            prompt,
+            "exec",
         ]
+        if self._session_id:
+            cmd += ["resume", self._session_id]
+        cmd += [
+            "--skip-git-repo-check",
+            "--color", "never",
+            "-o", output_file,
+            "-s", sandbox_mode,
+        ]
+        if bypass_sandbox:
+            cmd.append("--dangerously-bypass-approvals-and-sandbox")
+        if cwd:
+            cmd.extend(["-C", str(cwd)])
+        cmd.append(prompt)
 
         try:
             result = subprocess.run(
@@ -69,10 +91,40 @@ class CodexBridge:
                 text=True,
                 cwd=str(cwd) if cwd else None,
                 timeout=300,
+                stdin=subprocess.DEVNULL,
             )
 
+            # Read final message from output file
+            content = ""
+            try:
+                with open(output_file, "r", encoding="utf-8") as f:
+                    content = f.read().strip()
+            except Exception:
+                pass
+            finally:
+                try:
+                    Path(output_file).unlink(missing_ok=True)
+                except Exception:
+                    pass
+
+            # Parse session id from stdout for future resume calls
+            stdout = result.stdout or ""
+            if not self._session_id:
+                import re as _re
+                m = _re.search(r"session id:\s*([0-9a-f-]+)", stdout, _re.IGNORECASE)
+                if m:
+                    self._session_id = m.group(1)
+
+            # Fallback: parse stdout (strip wrapper noise)
+            if not content:
+                lines = [
+                    ln for ln in stdout.splitlines()
+                    if "[NeuroBridge Proxy]" not in ln
+                ]
+                content = "\n".join(lines).strip() or result.stderr.strip()
+
             return CodexResponse(
-                content=result.stdout.strip() or result.stderr.strip(),
+                content=content,
                 exit_code=result.returncode,
                 success=result.returncode == 0,
             )

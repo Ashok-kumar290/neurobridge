@@ -51,9 +51,10 @@ class RepoSearch:
         """Full-text search over code chunks."""
         conn = self._get_conn()
         try:
-            # FTS5 query — wrap terms for safety
+            # Sanitize query: keep only alphanumeric and spaces for FTS safety
+            clean_query = "".join(c if c.isalnum() else " " for c in query)
             fts_query = " OR ".join(
-                f'"{term}"' for term in query.split() if term.strip()
+                f'"{term}"' for term in clean_query.split() if term.strip()
             )
             if not fts_query:
                 return []
@@ -89,6 +90,8 @@ class RepoSearch:
         """Search symbols by name."""
         conn = self._get_conn()
         try:
+            # Truncate query for LIKE safety
+            safe_query = query[:200]
             rows = conn.execute(
                 """SELECT name, kind, file_path, start_line, signature
                    FROM symbols
@@ -99,7 +102,7 @@ class RepoSearch:
                           ELSE 2
                      END
                    LIMIT ?""",
-                (f"%{query}%", query, f"{query}%", limit),
+                (f"%{safe_query}%", safe_query, f"{safe_query}%", limit),
             ).fetchall()
 
             return [dict(r) for r in rows]

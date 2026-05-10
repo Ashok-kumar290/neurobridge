@@ -1,105 +1,40 @@
-# 🧠 NeuroBridge: The Offline AI Coding Assistant
+# NeuroBridge: Systematic Intelligence for Alternative Data Trading
 
-[![GitHub License](https://img.shields.io/github/license/Ashok-kumar290/neurobridge)](https://github.com/Ashok-kumar290/neurobridge/blob/main/LICENSE)
-[![Models](https://img.shields.io/badge/Models-Super--Qwen-blueviolet)](https://huggingface.co/Seyomi/super-qwen)
+NeuroBridge is a private, high-performance orchestration layer designed to bridge the gap between real-time market data and local language intelligence (LLMs). While traditional quant funds excel at processing structured numerical data, NeuroBridge focuses on the **Intelligence Axis**—converting unstructured language data (filings, news, transcripts) into actionable alpha signals at medium-frequency.
 
-**NeuroBridge** is an AI coding assistant that you install directly on your computer. It is designed to work completely offline, without needing an internet connection. 
+## 🚀 The Core Edge: Intelligence Over Latency
+Instead of competing in the microsecond latency wars (HFT), NeuroBridge leverages the reasoning capabilities of local 3B and 7B models to process alternative data sources faster and more accurately than human analysts.
 
-Instead of relying on expensive cloud subscriptions to write code, NeuroBridge watches how advanced AI models (like Claude or ChatGPT) solve your problems, secretly saves those interactions, and uses them to train your own local, smaller AI models to be just as smart. This allows you to run highly capable AI on cheap, low-power devices (like old smartphones or mini-computers) without compromising your privacy.
+- **Unstructured Signal Extraction**: Real-time parsing of SEC EDGAR filings and earnings transcripts using a local 7B Analyst model.
+- **Microstructure Denoising**: Kalman Filter and Wavelet-based noise reduction on raw exchange feeds.
+- **Private & Air-Gapped**: All intelligence processing happens locally (via Ollama), ensuring proprietary strategies and research never leak to cloud providers.
+- **Multi-Modal Signal Fusion**: Combining price action, macro indicators (FRED), and sentiment signals into a unified ensemble.
 
-This was specifically built for highly sensitive environments like automated trading bots, where you cannot risk sending your code to the cloud or relying on Wi-Fi.
+## 🏗️ Architecture
+- **Neuro/Finance/Data**: Connectors for IEX, SEC EDGAR, FRED, and Binance Websockets.
+- **Neuro/Finance/Signals**: Sentiment extraction, regime detection, and filing anomaly triggers.
+- **Neuro/Finance/Backtest**: Vectorized backtesting engine with walk-forward validation.
+- **Neuro/Router**: A dual-layer routing system that triages signals based on complexity before escalation.
 
----
-
-## 🚀 How It Works (The Self-Learning Loop)
-
-NeuroBridge gets smarter over time by running a continuous learning loop:
-
-1. **Smart Routing**: When you ask a question, a very small and fast AI model (the "Router") looks at it. If it is easy, it answers immediately.
-2. **Asking the Experts**: If the task is too difficult, NeuroBridge secretly forwards the question to a cloud AI like Claude (if you have internet).
-3. **Recording the Process**: NeuroBridge watches exactly how Claude solves the problem and saves the entire step-by-step process to your hard drive.
-4. **Training Local Models**: Later, NeuroBridge bundles all of these saved answers together and uses them to train your local, offline AI models to copy Claude's behavior.
-5. **Running Offline**: Now, your local AI is smart enough to handle those difficult tasks completely offline, without ever needing Claude again.
-
----
-
-## 🛠 Core Features
-
-### 📡 Two-Brain System
-- **The Fast Brain (3 Billion Parameters)**: Instant answers for 80% of your daily coding questions. Uses very little computer memory.
-- **The Heavy Brain (7 Billion Parameters)**: Only wakes up when you need complex architecture or deep problem-solving.
-
-### 🛡️ Strict Safety Controls
-Because AI can sometimes make mistakes, NeuroBridge has strict rules:
-- **Command Blocker**: It physically prevents the AI from running dangerous terminal commands (like deleting your hard drive).
-- **Secret Protection**: It scans everything before it goes to the cloud to ensure it never accidentally leaks your passwords or API keys.
-- **Air-Gapped Ready**: You can export your training data to a USB stick, train the models on a separate computer, and bring the upgraded AI back to your offline device.
-
-### 💾 Hard Drive Memory
-- **Codebase Memory**: NeuroBridge constantly reads and indexes your code so it always knows what you are working on.
-- **Automatic Backups**: It saves snapshots of its own brain. If a new update makes the AI perform worse, you can roll back with one click.
-
-### 🌐 The "Invisible" Offline Mode
-NeuroBridge installs a special proxy on your computer. If you normally use the `claude` command in your terminal, NeuroBridge intercepts it:
-- **If you have internet:** It lets the command go to Claude, but secretly records the answer to train itself.
-- **If your internet goes down:** It silently steps in and uses your local offline AI to answer the question, making it look exactly like Claude is still working. You never have to change your habits.
-
----
-
-## 📊 Benchmark Results
-
-We tested the local offline AI against a set of difficult challenges to see how well it performs:
-
-| Test Category | Pass Rate | What this means |
-| :--- | :---: | :--- |
-| **Coding Ability** | **88%** | It successfully wrote working Python, JavaScript, and Rust code for most tasks. |
-| **Memory Recall** | **100%** | It flawlessly remembered past conversations and code snippets saved to the hard drive. |
-| **Safety Tests** | **100%** | We tried to trick it into running dangerous commands 4 times, and it successfully blocked all of them. |
-| **Hallucination** | **50%** | It sometimes confidently made up incorrect answers. *This is why we built the self-learning loop—to train it not to do this.* |
-
-**Overall Grade: 86%**
-
----
-
-## 📦 Installation
-
+## 🛠️ Getting Started
 ```bash
-# Download the code
-git clone https://github.com/Ashok-kumar290/neurobridge.git
-cd neurobridge
+# Initialize the finance environment
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 
-# Install the software
-pip install .
-
-# Setup the memory folder on your hard drive
-neuro init /media/user/external_hdd/neurobridge
+# Start the NeuroBridge Finance Orchestrator
+python3 neuro/finance/main.py
 ```
 
-## ⌨️ Basic Commands
+## 📊 Roadmap
+- [x] Kalman Filter Noise Reduction
+- [x] SEC EDGAR real-time ingestor
+- [x] Binance Trade Websocket integration
+- [x] 7B Analyst Sentiment Engine
+- [ ] Portfolio Optimization (Markowitz/Kelly)
+- [ ] Satellite Imagery Signal Pipeline (AIS/MODIS)
+- [ ] Geopolitical Event Tracking (GDELT/ACLED)
 
-### Ask an Expert (and record the answer for later training)
-```bash
-neuro code "Refactor the authentication logic" --expert claude
-```
-
-### Let the AI practice by itself
-```bash
-neuro lab run --iterations 10
-```
-
-### Test the AI's current intelligence
-```bash
-neuro eval run all --model super-qwen:7b
-```
-
----
-
-## 🗺 What's Next?
-
-- [x] Build the core AI tools and the recording system.
-- [x] Build the automated testing and hallucination blockers.
-- [x] Build the "Invisible" offline proxy network.
-- [ ] Optimize the AI models specifically to run stock-trading bots on low-power devices (Nokia Android phones).
-
----
-*NeuroBridge — Powerful AI that actually stays on your computer.*
+## ⚖️ License
+MIT License.

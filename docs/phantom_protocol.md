@@ -13,7 +13,7 @@ The Phantom Network is the decentralized communication layer for NeuroBridge. It
 - **Phase 2 (Mesh)**: Future implementation of a Lightweight DHT for automated local discovery.
 
 ## 3. Skill Sharing (Adapter Sync)
-- **Problem**: QLoRA adapters can be 50MB - 200MB. Sending them over slow networks (like your Nokia node) requires chunking.
+- **Problem**: QLoRA adapters can be 50MB - 200MB. Sending them over constrained networks requires chunking.
 - **Protocol**:
     1. `SYNC_REQ`: Node A requests a specific adapter by ID.
     2. `SYNC_ACK`: Node B confirms it has the adapter and provides a BLAKE3 hash.

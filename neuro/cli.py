@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Optional
 
 import typer
-from rich import print as rprint
+from rich import box, print as rprint
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, DownloadColumn
@@ -67,6 +67,7 @@ evals_app = typer.Typer(help="Evaluation benchmarks.")
 train_app = typer.Typer(help="Training & adapter management.")
 lab_app = typer.Typer(help="Autonomous self-learning sandbox.")
 network_app = typer.Typer(help="Decentralized Phantom Network management.")
+mind_app = typer.Typer(help="Adaptive Mind — experience-based learning.")
 
 app.add_typer(config_app, name="config")
 app.add_typer(models_app, name="models")
@@ -77,6 +78,7 @@ app.add_typer(evals_app, name="eval")
 app.add_typer(train_app, name="train")
 app.add_typer(lab_app, name="lab")
 app.add_typer(network_app, name="network")
+app.add_typer(mind_app, name="mind")
 
 
 # ── Network ──────────────────────────────────────────────────────────────────
@@ -110,20 +112,28 @@ def network_sync(
 ) -> None:
     """Request a QLoRA adapter from a remote node."""
     from neuro.network.daemon import NodeDaemon
-    console.print(f"[cyan]Requesting adapter {adapter_id!r} from {target}...[/cyan]")
-    daemon = NodeDaemon()
-    daemon.send_packet(target, {"type": "sync_req", "adapter_id": adapter_id, "sender": "local_node"})
-
-@network_app.command("sync")
-def network_sync(
-    adapter_id: str = typer.Argument(..., help="The ID of the adapter to sync."),
-    target: str = typer.Argument(..., help="Target node IP address.")
-) -> None:
-    """Request a QLoRA adapter from a remote node."""
-    from neuro.network.daemon import NodeDaemon
     console.print(f"[cyan]Requesting adapter '{adapter_id}' from {target}...[/cyan]")
     daemon = NodeDaemon()
     daemon.send_packet(target, {"type": "sync_req", "adapter_id": adapter_id, "sender": "local_node"})
+
+
+@memory_app.command("stats")
+def memory_stats() -> None:
+    """Show intelligence indexing statistics."""
+    from neuro.memory.vector_store import get_vector_store
+    store = get_vector_store()
+    stats = store.get_stats()
+    
+    table = Table(title="🧠 Memory Index Stats", box=box.ROUNDED)
+    table.add_column("Indicator", style="cyan")
+    table.add_column("Value", style="bold white")
+    
+    table.add_row("Total Chunks", str(stats.get("total_chunks", 0)))
+    table.add_row("Indexed Files", str(stats.get("total_files", 0)))
+    table.add_row("Vector Dimension", str(stats.get("dimension", 0)))
+    table.add_row("Last Rebuild", stats.get("last_rebuild", "Never"))
+    
+    console.print(table)
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -662,23 +672,39 @@ def _display_routing(decision) -> None:
 
 
 def _execute_local(task: str, repo_path: Path, decision, search_results=None, model_override: str | None = None) -> None:
-    """Execute a task with a local model."""
-    from neuro.modes.safe_mode import SafeMode
+    """Execute a task with a local model, augmented by the Adaptive Mind."""
+    from neuro.learning.adaptive_mind import AdaptiveMind
 
-    console.print(f"\n[bold]Executing with [cyan]{decision.model}[/cyan]...[/bold]")
-
-    mode = SafeMode(repo_path=repo_path)
     target_model = model_override or decision.model
-    answer = mode.ask(task, model_override=target_model, context_override=search_results)
+    console.print(f"\n[bold]Executing with [cyan]{target_model}[/cyan] (experience-augmented)...[/bold]")
 
-    console.print(Panel(answer.content, title="[bold cyan]Result[/bold cyan]", border_style="cyan"))
+    # Build context from search results
+    context_parts = []
+    if search_results:
+        for r in search_results:
+            context_parts.append(f"File: {r.file_path}\n```{r.language}\n{r.content}\n```")
+    context_text = "\n\n".join(context_parts)
 
-    if answer.sources:
-        console.print("\n[dim]Sources:[/dim]")
-        for src in answer.sources:
-            console.print(f"  [dim]•[/dim] {src}")
+    # Use the Adaptive Mind for experience-augmented generation
+    mind = AdaptiveMind(
+        model=target_model,
+        use_steering=True,
+        auto_learn=True,
+    )
+    mind.ingest_buffer()
 
-    console.print(f"\n[dim]Tokens: {answer.tokens_used} | Model: {answer.model} | Time: {answer.duration_ms:.0f}ms[/dim]")
+    with console.status("[cyan]Thinking..."):
+        response = mind.think(query=task, context=context_text)
+
+    console.print(Panel(response.content, title="[bold cyan]Result[/bold cyan]", border_style="cyan"))
+
+    # Status line
+    parts = [f"Tokens: {response.tokens_used}", f"Model: {response.model}"]
+    parts.append(f"Time: {response.generation_time_ms:.0f}ms")
+    if response.augmented:
+        parts.append(f"Experiences: {response.num_experiences_recalled}")
+    parts.append(f"Factuality: {response.factuality_score:.2f}")
+    console.print(f"\n[dim]{' | '.join(parts)}[/dim]")
 
 
 def _execute_expert(task, repo_path, decision, search_results, memory_hits) -> None:
@@ -986,13 +1012,14 @@ def traces_stats() -> None:
 
 @traces_app.command("list")
 def traces_list(
-    directory: str = typer.Argument(
-        "raw", help="Directory to list: raw|sanitized|accepted|rejected",
+    directory: str = typer.Option(
+        "accepted", "--dir", "-d", help="accepted|rejected|raw|sanitized",
     ),
-    limit: int = typer.Option(20, "--limit", "-n", help="Max traces."),
+    limit: int = typer.Option(20, "--limit", "-l", help="Max traces."),
 ) -> None:
-    """List traces in a directory."""
+    """List captured traces."""
     from neuro.traces.recorder import TraceRecorder
+    from rich import box
 
     recorder = TraceRecorder()
     traces = recorder.list_traces(directory)
@@ -1001,26 +1028,43 @@ def traces_list(
         console.print(f"[dim]No traces in {directory}/[/dim]")
         return
 
-    table = Table(
-        title=f"Traces ({directory})",
-        show_header=True,
-        header_style="bold cyan",
-    )
-    table.add_column("ID", style="dim")
-    table.add_column("Task")
-    table.add_column("Model")
-    table.add_column("Trainable")
+    table = Table(title=f"Traces ({directory})", box=box.SIMPLE)
+    table.add_column("ID", style="cyan")
+    table.add_column("Model", style="dim")
+    table.add_column("Task", ratio=1)
+    table.add_column("Success", justify="center")
 
-    for t in traces[-limit:]:
-        trainable = "[green]✓[/green]" if t.get("trainable") else "[dim]✗[/dim]"
-        table.add_row(
-            t.get("trace_id", "?"),
-            t.get("task", "?")[:50],
-            t.get("model", "?"),
-            trainable,
-        )
+    for t in traces[:limit]:
+        status = "[green]✓[/green]" if t.get("success") else "[red]✗[/red]"
+        table.add_row(t.get("trace_id", "?"), t.get("model", "?"), t.get("task", "?")[:60], status)
 
     console.print(table)
+
+
+@traces_app.command("view")
+def traces_view(
+    trace_id: str = typer.Argument(..., help="The ID of the trace to view.")
+) -> None:
+    """View detailed steps of a specific trace."""
+    from neuro.traces.recorder import TraceRecorder
+
+    recorder = TraceRecorder()
+    data = recorder.get_trace(trace_id)
+
+    if not data:
+        console.print(f"[red]Trace {trace_id} not found.[/red]")
+        return
+
+    console.print(Panel(data.get("task", ""), title=f"Trace {trace_id} ({data.get("_directory")})", border_style="cyan"))
+    
+    for i, step in enumerate(data.get("steps", []), 1):
+        step_type = step.get("step_type", "unknown")
+        console.print(f"\n[bold magenta]STEP {i}: {step_type.upper()}[/bold magenta]")
+        if step_type == "model_call":
+            console.print(Panel(step["data"].get("response", ""), subtitle=f"Model: {data.get("model")}", border_style="dim"))
+        elif step_type == "test":
+            res = "[green]PASSED[/green]" if step["data"].get("passed") else "[red]FAILED[/red]"
+            console.print(f"Test Result: {res}")
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1043,6 +1087,38 @@ def eval_suites() -> None:
     total = sum(s["cases"] for s in list_suites())
     table.add_row("[bold]all[/bold]", f"[bold]{total}[/bold]")
 
+    console.print(table)
+
+
+
+@evals_app.command("bench")
+def eval_bench(
+    prompt: str = typer.Argument(..., help="The prompt to benchmark."),
+    models: str = typer.Option("super-qwen:3b,super-qwen:7b", "--models", help="Comma-separated model names.")
+) -> None:
+    """Run a prompt against multiple models and compare results."""
+    from neuro.runtime.ollama_client import get_ollama_client
+    client = get_ollama_client()
+    model_list = models.split(",")
+    
+    table = Table(title=f"Benchmark: {prompt[:50]}...", box=box.ROUNDED)
+    table.add_column("Model", style="cyan")
+    table.add_column("Response", ratio=1)
+    table.add_column("Tokens", justify="right")
+    table.add_column("Time", justify="right")
+    
+    with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), console=console) as progress:
+        for m in model_list:
+            task_id = progress.add_task(f"Querying {m}...", total=None)
+            start = time.time()
+            try:
+                resp = client.generate(m, prompt)
+                duration_ms = resp.total_duration_ms
+                table.add_row(m, resp.content[:200] + "...", str(resp.eval_count), f"{duration_ms:.0f}ms")
+            except Exception as e:
+                table.add_row(m, f"[red]Error: {e}[/red]", "0", "0ms")
+            progress.remove_task(task_id)
+            
     console.print(table)
 
 
@@ -1519,6 +1595,411 @@ def train_promote(
 from neuro.modes.lab_mode import run_lab, lab_stats
 lab_app.command("run")(run_lab)
 lab_app.command("stats")(lab_stats)
+
+@app.command("dash")
+def dashboard() -> None:
+    """Launch the NeuroBridge Command Center (TUI)."""
+    from neuro.tui.dashboard import run_dash
+    run_dash()
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# neuro think — the Adaptive Mind entry point
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+@app.command()
+def think(
+    query: str = typer.Argument(..., help="Question or coding task."),
+    model: Optional[str] = typer.Option(
+        None, "--model", "-m", help="Override model (default: auto-routed).",
+    ),
+    no_experience: bool = typer.Option(
+        False, "--no-experience", help="Disable experience augmentation.",
+    ),
+    interactive: bool = typer.Option(
+        False, "--interactive", "-i", help="Interactive mode — keep asking questions.",
+    ),
+) -> None:
+    """Ask the Adaptive Mind — learns from every interaction."""
+    from neuro.learning.adaptive_mind import AdaptiveMind
+
+    mind = AdaptiveMind(
+        model=model or MODEL_ROUTER,  # 3B default — fast on CPU
+        use_steering=True,
+        auto_learn=True,
+        max_recall=0 if no_experience else 3,
+    )
+
+    # Auto-ingest from replay buffer
+    count = mind.ingest_buffer()
+
+    def _ask_once(q: str) -> None:
+        with console.status("[cyan]Thinking..."):
+            response = mind.think(query=q)
+
+        console.print(Panel(
+            response.content,
+            title="[bold cyan]NeuroBridge[/bold cyan]",
+            border_style="cyan",
+        ))
+
+        # Status line
+        parts = []
+        parts.append(f"Model: {response.model}")
+        parts.append(f"Time: {response.generation_time_ms:.0f}ms")
+        if response.augmented:
+            parts.append(f"Experiences: {response.num_experiences_recalled}")
+        parts.append(f"Factuality: {response.factuality_score:.2f}")
+        parts.append(f"Tokens: {response.tokens_used}")
+        console.print(f"[dim]{' | '.join(parts)}[/dim]")
+
+    _ask_once(query)
+
+    if interactive:
+        console.print("\n[dim]Interactive mode. Type 'exit' or Ctrl+C to quit.[/dim]")
+        while True:
+            try:
+                q = console.input("\n[bold cyan]>[/bold cyan] ")
+                if q.strip().lower() in ("exit", "quit", "q"):
+                    break
+                _ask_once(q.strip())
+            except (KeyboardInterrupt, EOFError):
+                break
+
+    mind.info()
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# neuro mind — experience memory management
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+@mind_app.command("status")
+def mind_status() -> None:
+    """Show Adaptive Mind status and experience memory stats."""
+    from neuro.learning.adaptive_mind import AdaptiveMind
+
+    mind = AdaptiveMind(model=MODEL_CODER, use_steering=True, auto_learn=False)
+    mind.info()
+
+
+@mind_app.command("ingest")
+def mind_ingest() -> None:
+    """Ingest captured sessions from the replay buffer into experience memory."""
+    from neuro.learning.adaptive_mind import AdaptiveMind
+
+    mind = AdaptiveMind(model=MODEL_CODER, use_steering=False, auto_learn=False)
+    count = mind.ingest_buffer()
+    if count == 0:
+        console.print("[dim]No new experiences to ingest.[/dim]")
+    mind.memory.info()
+
+
+@mind_app.command("recall")
+def mind_recall(
+    query: str = typer.Argument(..., help="Query to recall experiences for."),
+    top_k: int = typer.Option(5, "--top", "-k", help="Number of results."),
+) -> None:
+    """Search experience memory for similar past interactions."""
+    from neuro.learning.adaptive_mind import AdaptiveMind
+
+    mind = AdaptiveMind(model=MODEL_CODER, use_steering=False, auto_learn=False)
+    experiences = mind.memory.recall(query, top_k=top_k)
+
+    if not experiences:
+        console.print("[yellow]No relevant experiences found.[/yellow]")
+        return
+
+    table = Table(title="Recalled Experiences", show_header=True, header_style="bold cyan")
+    table.add_column("#", style="dim")
+    table.add_column("Source")
+    table.add_column("Quality", justify="right")
+    table.add_column("Query")
+    table.add_column("Response", style="dim")
+
+    for i, exp in enumerate(experiences, 1):
+        table.add_row(
+            str(i),
+            exp.source,
+            f"{exp.combined_score():.2f}",
+            exp.query[:60] + ("..." if len(exp.query) > 60 else ""),
+            exp.response[:80] + ("..." if len(exp.response) > 80 else ""),
+        )
+
+    console.print(table)
+
+
+@mind_app.command("prune")
+def mind_prune(
+    min_score: float = typer.Option(0.2, "--min-score", help="Minimum quality score to keep."),
+) -> None:
+    """Remove low-quality experiences (hallucinations, junk)."""
+    from neuro.learning.adaptive_mind import AdaptiveMind
+
+    mind = AdaptiveMind(model=MODEL_CODER, use_steering=False, auto_learn=False)
+    pruned = mind.prune()
+    console.print(f"Pruned {pruned} low-quality experiences.")
+    mind.memory.info()
+
+
+@mind_app.command("watch")
+def mind_watch(
+    interval: float = typer.Option(5.0, "--interval", "-i", help="Poll interval in seconds."),
+) -> None:
+    """Start the auto-ingest daemon — watches replay buffer and learns in real-time."""
+    from neuro.learning.auto_ingest import BufferWatcher
+
+    console.print(Panel(
+        "[bold cyan]NeuroBridge Auto-Ingest Daemon[/bold cyan]\n"
+        "Watching replay buffer for new Codex/Claude sessions...\n"
+        "Press Ctrl+C to stop.",
+        border_style="cyan",
+    ))
+
+    watcher = BufferWatcher(poll_interval=interval)
+    watcher.start()
+    try:
+        import time as _time
+        while True:
+            _time.sleep(1)
+    except KeyboardInterrupt:
+        watcher.stop()
+        s = watcher.stats()
+        console.print(f"\n[dim]Stopped. Total ingested: {s['total_ingested']}[/dim]")
+
+
+@mind_app.command("teach")
+def mind_teach(
+    query: str = typer.Argument(..., help="The question."),
+    response: str = typer.Argument(..., help="The correct response."),
+    source: str = typer.Option("expert", "--source", "-s", help="Source label."),
+) -> None:
+    """Manually teach the Adaptive Mind a single example."""
+    from neuro.learning.adaptive_mind import AdaptiveMind
+
+    mind = AdaptiveMind(model=MODEL_CODER, use_steering=False, auto_learn=False)
+    mind.ingest_example(query, response, source=source)
+    console.print(f"[green]Learned![/green] Query: {query[:60]}")
+    mind.memory.info()
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# neuro agent — ReAct tool-use agent (model can run code, read/write files)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+@app.command()
+def agent(
+    task: str = typer.Argument(..., help="Task or problem for the agent to solve."),
+    model: str = typer.Option(MODEL_CODER, "--model", "-m", help="Local model to drive the agent."),
+    max_steps: int = typer.Option(12, "--steps", "-s", help="Maximum reasoning steps."),
+    cwd: Optional[Path] = typer.Option(None, "--cwd", "-C", help="Working directory for tools (default: temp dir)."),
+    quiet: bool = typer.Option(False, "--quiet", "-q", help="Hide step-by-step output."),
+    temperature: float = typer.Option(0.2, "--temperature", "-t", help="Sampling temperature."),
+) -> None:
+    """Tool-use agent — model runs code, reads files, iterates until done.
+
+    Unlike `neuro solve` (one-shot generate-and-verify), this agent can:
+    - Execute Python code mid-reasoning (math, simulations, brute-force checks)
+    - Read and write files
+    - Search experience memory
+    - Run pytest
+
+    Use this for problems that need real computation or iteration.
+
+    Examples:
+        neuro agent "What is sum of primes below 1000?"
+        neuro agent "Find shortest path from (0,0) to (10,10) on a 5-step grid"
+        neuro agent "Write a Python class for a trie with insert/search/prefix" -C ./scratch
+    """
+    from neuro.learning.agent import Agent
+
+    work_dir = cwd.resolve() if cwd else None
+
+    if not quiet:
+        console.print(Panel(
+            f"[bold cyan]NeuroBridge Tool-Use Agent[/bold cyan]\n"
+            f"Model: {model}  |  Max steps: {max_steps}  |  "
+            f"CWD: {work_dir or '(temp)'}\n"
+            f"Tools: run_python, read_file, write_file, list_files, search_memory, run_tests",
+            border_style="cyan",
+        ))
+
+    agent_obj = Agent(
+        model=model,
+        max_steps=max_steps,
+        cwd=work_dir,
+        verbose=not quiet,
+        temperature=temperature,
+    )
+    result = agent_obj.run(task)
+    agent_obj.display_summary(result)
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# neuro solve — offline advanced coding agent (Opus-class reasoning)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+@app.command()
+def solve(
+    problem: str = typer.Argument(..., help="Problem to solve (algorithm, code task, etc.)."),
+    no_verify: bool = typer.Option(False, "--no-verify", help="Skip code execution verification."),
+    fast: bool = typer.Option(False, "--fast", help="Use 3B for code too (faster, less accurate)."),
+    max_refine: int = typer.Option(3, "--max-refine", "-r", help="Max refinement iterations."),
+    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Write solution code to file."),
+    optimal: bool = typer.Option(False, "--optimal", help="Tournament mode: generate N candidates, pick fastest."),
+    candidates: int = typer.Option(3, "--candidates", "-n", help="Number of candidates in --optimal mode."),
+) -> None:
+    """Solve hard problems offline — multi-step reasoning agent.
+
+    Uses cooperative chaining: 3B plans, 7B codes, Python verifies, 7B refines.
+    Comparable to Opus/Codex for algorithms, but fully offline.
+
+    Examples:
+        neuro solve "Implement Dijkstra's algorithm with Fibonacci heap"
+        neuro solve "Write a red-black tree in Python"
+        neuro solve "Given an array, find longest increasing subsequence in O(n log n)"
+    """
+    from neuro.learning.solver import Solver
+
+    coder = MODEL_ROUTER if fast else MODEL_CODER  # 3B fast vs 7B accurate
+    solver = Solver(
+        planner_model=MODEL_ROUTER,
+        coder_model=coder,
+        use_steering=True,
+        max_refinements=max_refine,
+    )
+
+    console.print(Panel(
+        f"[bold cyan]NeuroBridge Offline Solver[/bold cyan]\n"
+        f"Planner: {MODEL_ROUTER}  |  Coder: {coder}  |  "
+        f"Verify: {'on' if not no_verify else 'off'}  |  Max refine: {max_refine}",
+        border_style="cyan",
+    ))
+
+    if optimal:
+        result = solver.tournament(problem, num_candidates=candidates)
+    else:
+        result = solver.solve(problem, verify=not no_verify)
+    
+    solver.display(result)
+
+    if output and result.code:
+        output.write_text(result.code)
+        console.print(f"\n[green]Solution written to {output}[/green]")
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# neuro chat — proxy mode to Claude/Codex (token-optimized)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+@app.command()
+def chat(
+    query: Optional[str] = typer.Argument(None, help="Initial message (omit for interactive)."),
+    claude: bool = typer.Option(False, "--claude", help="Route through Claude."),
+    codex: bool = typer.Option(False, "--codex", help="Route through Codex."),
+    no_compress: bool = typer.Option(False, "--no-compress", help="Disable prompt compression."),
+    no_experience: bool = typer.Option(False, "--no-experience", help="Disable experience injection."),
+    repo: Optional[Path] = typer.Option(None, "--repo", "-r", help="Working directory for the expert."),
+) -> None:
+    """Chat with Claude or Codex through NeuroBridge — saves tokens.
+
+    NeuroBridge compresses your prompts, injects relevant local
+    knowledge, and captures responses for learning.
+
+    Examples:
+        neuro chat --claude "Fix the auth middleware"
+        neuro chat --codex "Add rate limiting to /api"
+        neuro chat --claude                            # interactive
+    """
+    from neuro.runtime.proxy_chat import ProxyChat
+
+    # Determine expert
+    if claude:
+        expert = "claude"
+    elif codex:
+        expert = "codex"
+    else:
+        console.print("[red]Specify --claude or --codex[/red]")
+        console.print("  neuro chat --claude \"your prompt\"")
+        console.print("  neuro chat --codex \"your prompt\"")
+        raise typer.Exit(1)
+
+    # Check availability
+    proxy = ProxyChat(
+        expert=expert,
+        compress=not no_compress,
+        use_experiences=not no_experience,
+    )
+
+    bridge = proxy._get_bridge()
+    if not bridge.is_available():
+        if expert == "claude":
+            console.print(
+                "[red]Claude not available.[/red] Need either:\n"
+                "  - ANTHROPIC_API_KEY env var, or\n"
+                "  - Claude Code CLI: npm install -g @anthropic-ai/claude-code"
+            )
+        else:
+            console.print("[red]Codex not available.[/red] Install: npm install -g @openai/codex")
+        raise typer.Exit(1)
+
+    cwd = repo.resolve() if repo else Path.cwd()
+    expert_color = "yellow" if expert == "claude" else "green"
+    expert_label = "Claude" if expert == "claude" else "Codex"
+
+    console.print(Panel(
+        f"[bold cyan]NeuroBridge Proxy → {expert_label}[/bold cyan]\n"
+        f"Compression: {'[green]on[/green]' if not no_compress else '[red]off[/red]'}  |  "
+        f"Experiences: {'[green]on[/green]' if not no_experience else '[red]off[/red]'}  |  "
+        f"CWD: {cwd}\n"
+        f"Every message is compressed locally before sending.\n"
+        f"All responses are captured for learning.",
+        border_style=expert_color,
+    ))
+
+    def _send(msg: str) -> None:
+        with console.status(f"[{expert_color}]{expert_label} is thinking..."):
+            response = proxy.chat(msg, cwd=cwd)
+
+        console.print(Panel(
+            response,
+            title=f"[bold {expert_color}]{expert_label}[/bold {expert_color}]",
+            border_style=expert_color,
+        ))
+
+        # Show per-message savings
+        s = proxy.stats
+        console.print(
+            f"[dim]Tokens saved so far: {s.tokens_saved:,} ({s.savings_pct:.0f}%) | "
+            f"Expert: {s.total_expert_tokens:,} | Local (free): {s.local_tokens:,}[/dim]"
+        )
+
+    # Single message mode
+    if query:
+        _send(query)
+        proxy.show_savings()
+        return
+
+    # Interactive mode
+    console.print(f"[dim]Type your messages. 'exit' or Ctrl+C to quit.[/dim]\n")
+    while True:
+        try:
+            msg = console.input(f"[bold {expert_color}]you>[/bold {expert_color}] ")
+            if msg.strip().lower() in ("exit", "quit", "q"):
+                break
+            if not msg.strip():
+                continue
+            _send(msg.strip())
+        except (KeyboardInterrupt, EOFError):
+            break
+
+    console.print()
+    proxy.show_savings()
+    proxy.info()
+
 
 if __name__ == "__main__":
     app()

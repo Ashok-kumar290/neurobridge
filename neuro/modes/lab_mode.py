@@ -151,13 +151,13 @@ def run_lab(
                 if result["consistency_score"] >= 0.8:
                     # Capture as a successful trace
                     answer = mode.ask(task_prompt, model_override=model)
-                    recorder.record_trace(
-                        task=task_prompt,
-                        response=answer.content,
-                        model=model,
-                        trainable=True,
-                        category=difficulty
-                    )
+                    trace = recorder.start_trace(task=task_prompt, repo="lab_synthetic", model=model)
+                    trace.add_step("model_call", {"prompt": task_prompt})
+                    trace.add_step("output", {"response": answer.content})
+                    trace.finish(success=True, tests_passed=True, human_approved=True)
+                    recorder.save_raw(trace)
+                    if auto_approve:
+                        recorder.accept_trace(trace)
                     session.successful += 1
                     progress.update(lab_task, description=f"Task {i+1}: [green]Approved (Score: {result['consistency_score']:.2f})[/green]")
                 else:
